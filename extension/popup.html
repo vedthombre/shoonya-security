@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeShield</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <!-- Header -->
+        <header class="popup-header">
+            <div class="logo">
+                <span class="logo-icon">🛡️</span>
+                <span class="logo-text">CodeShield</span>
+            </div>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span class="status-text" id="statusText">Active</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="popup-main">
+            <!-- Quick Stats -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-number" id="secretsCount">0</div>
+                    <div class="stat-label">Secrets Found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="scansCount">0</div>
+                    <div class="stat-label">Scans Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="blockedCount">0</div>
+                    <div class="stat-label">Blocked</div>
+                </div>
+            </section>
+
+            <!-- Current Page Status -->
+            <section class="page-status">
+                <div class="page-info">
+                    <div class="page-url" id="pageUrl">-</div>
+                    <div class="page-status" id="pageStatus">Scanning...</div>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-primary" id="scanBtn">
+                        <span class="btn-icon">🔍</span>
+                        Scan Page
+                    </button>
+                    <button class="btn btn-secondary" id="restoreBtn">
+                        <span class="btn-icon">↩️</span>
+                        Restore All
+                    </button>
+                </div>
+            </section>
+
+            <!-- Recent Secrets -->
+            <section class="secrets-section" id="secretsSection" style="display: none;">
+                <h3>Recent Detections</h3>
+                <div class="secrets-list" id="secretsList">
+                    <!-- Secrets will be populated here -->
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <section class="actions-section">
+                <div class="action-buttons">
+                    <button class="action-btn" id="toggleBtn">
+                        <span class="action-icon">⚡</span>
+                        <span class="action-text">Toggle Scanning</span>
+                    </button>
+                    <button class="action-btn" id="settingsBtn">
+                        <span class="action-icon">⚙️</span>
+                        <span class="action-text">Settings</span>
+                    </button>
+                    <button class="action-btn" id="helpBtn">
+                        <span class="action-icon">❓</span>
+                        <span class="action-text">Help</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Protection Level -->
+            <section class="protection-level">
+                <div class="level-header">
+                    <span>Protection Level</span>
+                    <span class="level-value" id="protectionLevel">High</span>
+                </div>
+                <div class="level-bar">
+                    <div class="level-fill" id="levelFill" style="width: 100%;"></div>
+                </div>
+                <div class="level-description" id="levelDescription">
+                    Full protection against credential leaks
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="popup-footer">
+            <div class="footer-links">
+                <a href="#" id="reportIssue">Report Issue</a>
+                <a href="#" id="viewLogs">View Logs</a>
+            </div>
+            <div class="version">v1.0.0</div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Scanning...</div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
