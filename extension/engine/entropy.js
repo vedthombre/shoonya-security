@@ -8,7 +8,7 @@
  * @param {string} str - The string to calculate entropy for
  * @returns {number} The entropy value
  */
-function calculateEntropy(str) {
+export function calculateEntropy(str) {
   if (!str || typeof str !== 'string') {
     return 0;
   }
@@ -111,7 +111,8 @@ function isHighEntropySecret(token) {
  * @param {string} rawCode - The code/text to scan
  * @returns {Array} Array of detected high entropy secret objects
  */
-function scanWithEntropy(rawCode) {
+// ADDED EXPORT HERE
+export function scanWithEntropy(rawCode) {
   if (!rawCode || typeof rawCode !== 'string') {
     return [];
   }
@@ -147,7 +148,8 @@ function scanWithEntropy(rawCode) {
  * @param {string} text - The text to analyze
  * @returns {Object} Statistics about entropy in the text
  */
-function getEntropyStats(text) {
+// ADDED EXPORT HERE
+export function getEntropyStats(text) {
   if (!text || typeof text !== 'string') {
     return {
       averageEntropy: 0,

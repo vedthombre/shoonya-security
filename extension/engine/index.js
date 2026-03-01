@@ -3,10 +3,12 @@
  * Main orchestrator for secret detection pipeline
  */
 
-console.log(' DEBUG: Index module is loading!');
+// 1. ADD THESE IMPORTS (Node.js needs to know where these functions are)
+import { scanWithRegex } from './scanner.js';
+import { scanWithEntropy } from './entropy.js';
+import { redactCode } from './redactor.js';
 
-// Import the main engine functions (now available as global functions)
-// All functions are loaded in the global scope 
+console.log(' DEBUG: Index module is loading!');
 
 function removeDuplicates(detections) {
   if (!Array.isArray(detections)) { return []; }
@@ -39,7 +41,8 @@ function isValidInput(rawCode) {
   return typeof rawCode === 'string' && rawCode.length > 0;
 }
 
-function processCode(rawCode) {
+// 2. ADD 'export' HERE
+export function processCode(rawCode) {
   if (!isValidInput(rawCode)) {
     return { secretsFound: [], redactedCode: '', mapping: {}, metadata: { totalLength: 0, processingTime: 0, scanCount: 0 } };
   }
@@ -51,7 +54,6 @@ function processCode(rawCode) {
     const entropyResults = scanWithEntropy(rawCode);
     const mergedResults = mergeResults(regexResults, entropyResults);
     
-    // Execute your redaction engine
     const { redactedCode, mapping } = redactCode(rawCode, mergedResults);
     
     const endTime = performance.now();
@@ -76,11 +78,13 @@ function processCode(rawCode) {
   }
 }
 
-function quickScan(rawCode) {
+// 3. ADD 'export' HERE
+export function quickScan(rawCode) {
   return processCode(rawCode).secretsFound;
 }
 
-function getCodeStats(rawCode) {
+// 4. ADD 'export' HERE
+export function getCodeStats(rawCode) {
   if (!isValidInput(rawCode)) {
     return { lineCount: 0, characterCount: 0, wordCount: 0, estimatedRisk: 'none' };
   }
@@ -98,7 +102,7 @@ function getCodeStats(rawCode) {
   return { lineCount: lines.length, characterCount: rawCode.length, wordCount: words.length, estimatedRisk: risk, secretCount: secrets.length };
 }
 
-// Make processCode available globally for content script
+// Keep this for browser compatibility
 if (typeof window !== 'undefined') {
   window.processCode = processCode;
 }

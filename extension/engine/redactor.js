@@ -6,11 +6,12 @@
 /**
  * Replaces detected secrets with placeholders in a way that preserves 
  * string integrity and handles duplicate values.
- * * @param {string} rawCode - The original text from the user.
+ * @param {string} rawCode - The original text from the user.
  * @param {Array} secretsFound - Array of objects { type, value, index }.
  * @returns {Object} { redactedCode: string, mapping: object }
  */
-function redactCode(rawCode, secretsFound) {
+// Added 'export' so index.js can see this
+export function redactCode(rawCode, secretsFound) {
     // 1. Guard Clause: If no secrets, return original
     if (!secretsFound || secretsFound.length === 0) {
         return { redactedCode: rawCode, mapping: {} };
@@ -57,11 +58,12 @@ function redactCode(rawCode, secretsFound) {
 
 /**
  * Reverses the process. Used when the AI responds with placeholders.
- * * @param {string} aiOutput - The text received from the AI tool.
+ * @param {string} aiOutput - The text received from the AI tool.
  * @param {Object} mapping - The mapping object created during redaction.
  * @returns {string} - The text with original secrets restored.
  */
-function restoreCode(aiOutput, mapping) {
+// Added 'export' for future use
+export function restoreCode(aiOutput, mapping) {
     let restored = aiOutput;
     
     // Sort placeholders by length DESCENDING.

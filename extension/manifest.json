@@ -13,13 +13,14 @@
         "https://*/*",
         "http://*/*"
       ],
-      "js": ["engine/scanner.js", "engine/entropy.js", "engine/redactor.js", "engine/index.js", "content.js"],
+      "js": ["content.js"], 
       "css": ["content.css"],
       "run_at": "document_idle"
     }
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module" 
   },
   "action": {
     "default_popup": "popup.html",
