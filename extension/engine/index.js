@@ -12,21 +12,31 @@ console.log(' DEBUG: Index module is loading!');
 
 function removeDuplicates(detections) {
   if (!Array.isArray(detections)) { return []; }
-  const seen = new Set();
-  const unique = [];
-  for (const detection of detections) {
-    // Deduplicate by index+value ONLY (ignore type).
-    // The same token is often found by both regex (e.g. AWS_SECRET_KEY) and entropy
-    // (HIGH_ENTROPY_SECRET) at the exact same index. Keeping both causes redactCode
-    // to replace at the same position twice, corrupting the surrounding text.
-    // Regex results come first in the merged array, so the more specific label wins.
-    const key = `${detection.index}-${detection.value}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      unique.push(detection);
+
+  // Sort ascending by index first so we always prefer the earlier (usually regex) match
+  // when two detections cover the same region.
+  const sorted = [...detections].sort((a, b) => a.index - b.index);
+
+  const kept = [];
+
+  for (const detection of sorted) {
+    const start = detection.index;
+    const end = detection.index + detection.value.length;
+
+    // Reject this detection if it overlaps ANY already-kept detection.
+    // "Overlaps" means the index ranges intersect (not merely touch).
+    const overlaps = kept.some(k => {
+      const kStart = k.index;
+      const kEnd = k.index + k.value.length;
+      return start < kEnd && end > kStart;
+    });
+
+    if (!overlaps) {
+      kept.push(detection);
     }
   }
-  return unique;
+
+  return kept;
 }
 
 function sortByIndex(detections) {

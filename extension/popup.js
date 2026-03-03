@@ -118,13 +118,18 @@ class CodeShieldPopup {
     // Update status indicator
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
+    const statusPill = document.getElementById('statusIndicator');
 
     if (this.isScanning) {
       statusDot.classList.remove('inactive');
       statusText.textContent = 'Active';
+      statusPill.classList.remove('inactive');
+      statusPill.classList.add('active');
     } else {
       statusDot.classList.add('inactive');
       statusText.textContent = 'Paused';
+      statusPill.classList.remove('active');
+      statusPill.classList.add('inactive');
     }
 
     // Update stats
@@ -143,28 +148,28 @@ class CodeShieldPopup {
 
     if (!this.isScanning) {
       levelElement.textContent = 'Off';
-      levelElement.style.color = '#dc3545';
+      levelElement.style.color = 'var(--accent-red)';
       fillElement.style.width = '0%';
-      fillElement.style.background = '#dc3545';
+      fillElement.style.background = 'var(--accent-red)';
       descElement.textContent = 'Protection is disabled';
     } else if (this.settings.autoRedact && this.settings.showWarnings) {
       levelElement.textContent = 'High';
-      levelElement.style.color = '#28a745';
+      levelElement.style.color = 'var(--accent-green)';
       fillElement.style.width = '100%';
-      fillElement.style.background = 'linear-gradient(90deg, #28a745, #20c997)';
-      descElement.textContent = 'Full protection against credential leaks';
+      fillElement.style.background = 'linear-gradient(90deg, var(--accent-green), var(--accent-blue))';
+      descElement.textContent = 'Full protection active';
     } else if (this.settings.autoRedact || this.settings.showWarnings) {
       levelElement.textContent = 'Medium';
-      levelElement.style.color = '#ffc107';
+      levelElement.style.color = 'var(--accent-amber)';
       fillElement.style.width = '60%';
-      fillElement.style.background = 'linear-gradient(90deg, #ffc107, #fd7e14)';
+      fillElement.style.background = 'linear-gradient(90deg, var(--accent-amber), var(--accent-red))';
       descElement.textContent = 'Partial protection enabled';
     } else {
       levelElement.textContent = 'Low';
-      levelElement.style.color = '#fd7e14';
+      levelElement.style.color = 'var(--accent-red)';
       fillElement.style.width = '30%';
-      fillElement.style.background = 'linear-gradient(90deg, #fd7e14, #dc3545)';
-      descElement.textContent = 'Minimal protection - scanning only';
+      fillElement.style.background = 'var(--accent-red)';
+      descElement.textContent = 'Minimal protection — scanning only';
     }
   }
 
@@ -193,10 +198,10 @@ class CodeShieldPopup {
 
     if (isSupported) {
       pageStatus.textContent = 'Protected';
-      pageStatus.style.color = '#28a745';
+      pageStatus.classList.remove('warning');
     } else {
       pageStatus.textContent = 'Not optimized for this site';
-      pageStatus.style.color = '#ffc107';
+      pageStatus.classList.add('warning');
     }
 
     // Get scan results from content script

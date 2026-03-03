@@ -21,7 +21,10 @@ const SECRET_PATTERNS = {
     label: 'AWS_SECRET_KEY'
   },
   OPENAI_API_KEY: {
-    pattern: /\bsk-[a-zA-Z0-9]{48,}\b/g,
+    // Matches legacy sk-<20+alnum> AND newer sk-proj-<token>, sk-svcacct-<token> etc.
+    // Minimum lowered to 20 so keys slightly under 48 chars are still caught by regex
+    // rather than falling through to the entropy scanner with a generic label.
+    pattern: /\bsk-(?:[a-zA-Z0-9]{20,}|[a-zA-Z]+-[a-zA-Z0-9_-]{20,})\b/g,
     label: 'OPENAI_API_KEY'
   },
   STRIPE_LIVE_KEY: {
@@ -60,10 +63,15 @@ const SECRET_PATTERNS = {
     label: 'SEMANTIC_PASSWORD'
   },
 
-  // 3. NEW: PII Detection
+  // 3. PII Detection
   PHONE_NUMBER: {
-    // Catches international and standard formatted phone numbers
-    pattern: /\b(?:\+\d{1,3}[-\s]?)?\(?\d{3}\)?[-\s]?\d{3}[-\s]?\d{4}\b/g,
+    // Handles:
+    //   +1 (415) 555-0192   — US with country code + parens
+    //   800-867-5309        — plain US
+    //   +91-98765-43210     — Indian 5+5 format
+    //   +44 20 7946 0958    — UK style
+    // Strategy: match optional country code first (greedy), then digit groups.
+    pattern: /(?:\+\d{1,3}[-\s]?)?(?:\(?\d{2,5}\)?[-\s]?)(?:\d{3,5}[-\s]?){1,2}\d{4,5}(?=\s|$|[^\d])/g,
     label: 'PHONE_NUMBER'
   }
 };

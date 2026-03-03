@@ -111,6 +111,11 @@ class CodeShieldContent {
     const text = this.getElementText(element);
     if (!text || text.length < 10) return;
 
+    // Guard: never re-scan already-redacted content.
+    // If our placeholders are present (e.g. [OPENAI_API_KEY_1]) the element has
+    // already been processed; scanning again produces double-replacement corruption.
+    if (/\[[A-Z_]+_\d+\]/.test(text)) return;
+
     // Bug #1 Fix: skip only if text hasn't changed since last scan
     // This allows re-scanning the same element when the user types a new message
     if (!force && this.lastScannedText.get(element) === text) return;
