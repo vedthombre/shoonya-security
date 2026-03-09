@@ -41,6 +41,15 @@ class CodeShieldContent {
     }
 
     this.observePage();
+
+    // Phase 4 additions: Listen for text selection to report missed secrets
+    document.addEventListener('selectionchange', this.handleSelection.bind(this));
+    document.addEventListener('mousedown', (e) => {
+      // Hide the report button if clicking outside
+      if (!e.target.closest('.codeshield-report-btn')) {
+        this.hideReportButton();
+      }
+    });
   }
 
   async loadSettings() {
@@ -215,6 +224,29 @@ class CodeShieldContent {
   showWarning(element, result) {
     document.querySelectorAll('.codeshield-warning').forEach(w => w.remove());
 
+    // ── Phase 2: XAI — compute highest NER confidence across all detected secrets ──
+    const confs = result.secretsFound
+      .map(s => s.nerConfidence)
+      .filter(c => c !== null && c !== undefined);
+    const topConf = confs.length > 0 ? Math.round(Math.max(...confs) * 100) : null;
+    const confBar = topConf !== null
+      ? `<div class="codeshield-xai">
+           <span class="codeshield-conf-label">NER Confidence</span>
+           <div class="codeshield-conf-bar-bg">
+             <div class="codeshield-conf-bar" style="width:${topConf}%"></div>
+           </div>
+           <span class="codeshield-conf-pct">${topConf}%</span>
+         </div>`
+      : '';
+
+    // ── Phase 4: Feedback buttons ─────────────────────────────────────────────────
+    const feedbackBtns = `
+      <div class="codeshield-feedback">
+        <span class="codeshield-feedback-label">Correct?</span>
+        <button class="codeshield-fb-btn codeshield-fb-yes" title="Yes, this is a real secret">👍</button>
+        <button class="codeshield-fb-btn codeshield-fb-no"  title="No, this is a false positive">👎</button>
+      </div>`;
+
     const warning = document.createElement('div');
     warning.className = 'codeshield-warning';
     warning.innerHTML = `
@@ -223,11 +255,87 @@ class CodeShieldContent {
         <span class="codeshield-text">${result.secretsFound.length} secret(s) detected!</span>
         <button class="codeshield-close-btn">×</button>
       </div>
+      ${confBar}
+      ${feedbackBtns}
     `;
 
     if (element.parentNode) element.parentNode.insertBefore(warning, element);
     warning.querySelector('.codeshield-close-btn').addEventListener('click', () => warning.remove());
-    setTimeout(() => { if (warning.parentNode) warning.remove(); }, 5000);
+
+    // Feedback handler
+    const sendFeedback = (label) => {
+      const payload = {
+        text: this.getElementText(element)?.slice(0, 300) ?? '',
+        secrets: result.secretsFound.map(s => ({ type: s.type, value: s.value?.slice(0, 40) })),
+        label,   // 'correct' | 'false_positive'
+      };
+      chrome.runtime.sendMessage({ type: 'saveFeedback', data: payload });
+      warning.querySelector('.codeshield-feedback').innerHTML =
+        `<span class="codeshield-fb-thanks">Thanks! Feedback saved ✓</span>`;
+    };
+
+    warning.querySelector('.codeshield-fb-yes').addEventListener('click', () => sendFeedback('correct'));
+    warning.querySelector('.codeshield-fb-no').addEventListener('click', () => sendFeedback('false_positive'));
+
+    setTimeout(() => { if (warning.parentNode) warning.remove(); }, 8000);
+  }
+
+  // ── Phase 4: Report Missed Secret UI ──────────────────────────────────────────
+  handleSelection() {
+    if (!this.settings.enabled) return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.toString().trim().length < 10) {
+      this.hideReportButton();
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+
+    // Make sure we are inside an editable area
+    const root = this.resolveEditableRoot(selection.anchorNode);
+    if (!this.isCodeElement(root)) return;
+
+    this.showReportButton(rect, selection.toString().trim(), root);
+  }
+
+  hideReportButton() {
+    const existing = document.getElementById('cs-report-btn');
+    if (existing) existing.remove();
+  }
+
+  showReportButton(rect, selectedText, element) {
+    this.hideReportButton();
+
+    const btn = document.createElement('button');
+    btn.id = 'cs-report-btn';
+    btn.className = 'codeshield-report-btn';
+    btn.innerHTML = '🛡️ Report Missed Secret';
+    btn.style.position = 'absolute';
+    // Position just above the selection
+    btn.style.top = `${window.scrollY + rect.top - 40}px`;
+    btn.style.left = `${window.scrollX + rect.left + (rect.width / 2)}px`;
+    btn.style.transform = 'translateX(-50%)';
+
+    document.body.appendChild(btn);
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const payload = {
+        text: this.getElementText(element)?.slice(0, 300) ?? '',
+        secrets: [{ type: 'USER_REPORTED_MISSED', value: selectedText.slice(0, 40) }],
+        label: 'missed_secret',
+      };
+
+      chrome.runtime.sendMessage({ type: 'saveFeedback', data: payload });
+
+      btn.innerHTML = '✓ Reported';
+      btn.style.background = '#10b981';
+      setTimeout(() => this.hideReportButton(), 1500);
+    });
   }
 
   redactElement(element, result) {

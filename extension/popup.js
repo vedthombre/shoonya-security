@@ -98,6 +98,11 @@ class CodeShieldPopup {
       this.openHelp();
     });
 
+    // Export Feedback button
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      this.exportFeedback();
+    });
+
     // Report issue
     document.getElementById('reportIssue').addEventListener('click', () => {
       this.reportIssue();
@@ -384,6 +389,30 @@ class CodeShieldPopup {
     chrome.tabs.create({
       url: 'https://github.com/ishwari05/codeshield-security#readme'
     });
+  }
+
+  async exportFeedback() {
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'exportFeedback' });
+      if (response && response.success && response.data) {
+        if (response.data.length === 0) {
+          this.showNotification('No feedback collected yet', 'info');
+          return;
+        }
+        const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        chrome.downloads.download({
+          url: url,
+          filename: 'codeshield_feedback.json',
+          saveAs: true
+        });
+      } else {
+        throw new Error(response.error || 'Failed to export');
+      }
+    } catch (err) {
+      console.error('Export failed:', err);
+      this.showNotification('Failed to export feedback', 'error');
+    }
   }
 
   reportIssue() {
