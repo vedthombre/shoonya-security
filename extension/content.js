@@ -77,9 +77,16 @@ class CodeShieldContent {
   // Resolves the actual editable root (e.g. walks up from <p> to the contenteditable div)
   // This is critical for ChatGPT/Gemini where events fire on inner child elements
   resolveEditableRoot(element) {
+    if (!element || !element.tagName) return element;
     if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') return element;
+
+    // Specifically target ChatGPT's ProseMirror root
+    const chatGptRoot = element.closest('#prompt-textarea') || element.closest('.ProseMirror');
+    if (chatGptRoot) return chatGptRoot;
+
     const contentEditable = element.closest('[contenteditable="true"]');
     if (contentEditable) return contentEditable;
+
     return element;
   }
 
@@ -102,7 +109,16 @@ class CodeShieldContent {
   }
 
   isCodeElement(element) {
-    const codeSelectors = ['textarea', 'input', 'pre', 'code', '[role="textbox"]', '[contenteditable="true"]'];
+    const codeSelectors = [
+      'textarea',
+      'input',
+      'pre',
+      'code',
+      '[role="textbox"]',
+      '[contenteditable="true"]',
+      '#prompt-textarea',
+      '.ProseMirror'
+    ];
     return codeSelectors.some(selector => element.matches?.(selector) || element.closest?.(selector));
   }
 
@@ -159,9 +175,12 @@ class CodeShieldContent {
 
   getElementText(element) {
     if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') return element.value;
-    // Use innerText for contenteditable — it preserves \n between <p> tags.
+
+    // Use innerText for contenteditable/ProseMirror — it preserves \n between <p> tags.
     // textContent merges paragraphs without newlines, causing wrong regex indices.
-    if (element.contentEditable === 'true') return element.innerText || element.textContent;
+    const isEditable = element.contentEditable === 'true' || element.classList?.contains('ProseMirror') || element.id === 'prompt-textarea';
+    if (isEditable) return element.innerText || element.textContent;
+
     return element.textContent || element.innerText;
   }
 
@@ -188,7 +207,7 @@ class CodeShieldContent {
       element.dispatchEvent(new Event('input', { bubbles: true }));
       element.dispatchEvent(new Event('change', { bubbles: true }));
 
-    } else if (element.contentEditable === 'true') {
+    } else if (element.contentEditable === 'true' || element.classList?.contains('ProseMirror') || element.id === 'prompt-textarea') {
       // Build HTML matching ChatGPT/Gemini's paragraph-per-line format.
       // execCommand('insertText') is unreliable on nested contenteditable divs.
       const escaped = text
@@ -397,7 +416,7 @@ class CodeShieldContent {
 
   scanCurrentPage() {
     // Bug #1 + #3 Fix: force=true bypasses the text-cache check so manual scan always runs
-    document.querySelectorAll('textarea, input, [contenteditable="true"]').forEach(element => {
+    document.querySelectorAll('textarea, input, [contenteditable="true"], #prompt-textarea, .ProseMirror').forEach(element => {
       this.scanElement(element, true);
     });
   }
