@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "CodeShield-Fixed",
-  "version": "2.0.0",
-  "description": "Protects against credential leaks",
+  "name": "Shoonya Security",
+  "version": "3.0.0",
+  "description": "Premium real-time secret detection and redaction for AI platforms",
   "permissions": [
     "activeTab",
     "storage",
@@ -38,5 +38,13 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dashboard/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

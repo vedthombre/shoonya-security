@@ -3,7 +3,7 @@
  * Manages the extension popup interface
  */
 
-class CodeShieldPopup {
+class ShoonyaPopup {
   constructor() {
     this.isScanning = true;
     this.stats = {
@@ -17,7 +17,7 @@ class CodeShieldPopup {
   }
 
   async init() {
-    console.log('🔍 CodeShield Popup Initialized');
+    console.log('🔍 Shoonya Popup Initialized');
 
     // Load settings and stats
     await this.loadSettings();
@@ -109,9 +109,26 @@ class CodeShieldPopup {
     });
 
     // View logs
-    document.getElementById('viewLogs').addEventListener('click', () => {
-      this.viewLogs();
-    });
+    // document.getElementById('viewLogs').addEventListener('click', () => {
+      // this.viewLogs();
+    // });
+
+    // View Analytics Dashboard
+    const viewAnalyticsEl = document.getElementById('viewAnalytics');
+    if (viewAnalyticsEl) {
+      viewAnalyticsEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openDashboard();
+      });
+    }
+
+    // Dashboard Button (Quick Action)
+    const dashboardBtnEl = document.getElementById('dashboardBtn');
+    if (dashboardBtnEl) {
+      dashboardBtnEl.addEventListener('click', () => {
+        this.openDashboard();
+      });
+    }
 
     // Listen for messages from content script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -479,10 +496,18 @@ class CodeShieldPopup {
     }
 
     sendResponse({ received: true });
+    this.isScanning = false;
+    this.updateUI();
+  }
+
+  openDashboard() {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('dashboard/index.html')
+    });
   }
 }
 
 // Initialize popup when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  new CodeShieldPopup();
+  new ShoonyaPopup();
 });

@@ -1,5 +1,5 @@
 /**
- * CodeShield Background Script
+ * Shoonya Background Script
  * Manages extension lifecycle and cross-tab communication
  * v2.1 — NER worker integration + feedback loop
  */
@@ -61,7 +61,7 @@ function nerInfer(text) {
   });
 }
 
-class CodeShieldBackground {
+class ShoonyaBackground {
   constructor() {
     this.isInitialized = false;
     this.stats = {
@@ -69,6 +69,7 @@ class CodeShieldBackground {
       secretsBlocked: 0,
       lastActivity: Date.now()
     };
+    this.recentLogs = new Map(); // De-duplication cache: key -> timestamp
 
     this.init();
   }
@@ -110,7 +111,7 @@ class CodeShieldBackground {
     });
 
     chrome.runtime.onStartup.addListener(() => {
-      console.log('CodeShield extension started');
+      console.log('Shoonya extension started');
       this.updateLastActivity();
     });
 
@@ -224,6 +225,8 @@ class CodeShieldBackground {
       // Phase 4 — Feedback loop
       case 'saveFeedback': this.saveFeedback(message.data, sendResponse); break;
       case 'exportFeedback': this.exportFeedback(sendResponse); break;
+      // Real-time Dashboard Sync
+      case 'secretsDetected': this.handleScanComplete(message.data, sender); break;
       default: sendResponse({ success: false, error: 'Unknown message type' });
     }
   }
@@ -239,7 +242,6 @@ class CodeShieldBackground {
     const enriched = [];
     for (const secret of secrets) {
       if (secret.type === 'HIGH_ENTROPY_SECRET') {
-        // Use NER as final judge to cut false positives
         const context = fullText.slice(
           Math.max(0, secret.index - 40),
           secret.index + secret.value.length + 40
@@ -248,10 +250,11 @@ class CodeShieldBackground {
         if (nerResult.hasSecret && nerResult.secrets.length > 0) {
           const best = nerResult.secrets[0];
           enriched.push({ ...secret, nerConfidence: best.confidence, xaiLabel: 'NER-CONFIRMED' });
+        } else {
+          // RESTORED ACCURACY (GitHub Version): Keep the entropy hit even if NER prediction misses!
+          enriched.push({ ...secret, nerConfidence: 0, xaiLabel: 'ENTROPY-MATCHED' });
         }
-        // else: discard — entropy false positive
       } else {
-        // Named regex hit — attach NER confidence for XAI banner
         const context = fullText.slice(
           Math.max(0, secret.index - 40),
           secret.index + secret.value.length + 40
@@ -305,14 +308,78 @@ class CodeShieldBackground {
 
   async handleScanComplete(data, sender) {
     this.stats.totalScans++;
+    
     if (data.secretsFound && data.secretsFound.length > 0) {
       this.stats.secretsBlocked += data.secretsFound.length;
+
+      // 🛰️ DISPATCH TO ANALYTICS DASHBOARD
+      this.logToDashboard(data.secretsFound, sender.tab);
+
       if (data.secretsFound.length > 2) {
         this.showRiskNotification(sender.tab, data.secretsFound.length);
       }
     }
     this.saveData();
     this.updateBadge();
+  }
+
+  async logToDashboard(secrets, tab) {
+    try {
+      const platform = this.getPlatformFromUrl(tab?.url || 'Other');
+      const now = Date.now();
+      
+      for (const secret of secrets) {
+        const eventKey = `${tab?.id || 'background'}-${platform}-${secret.type}-${secret.value?.substring(0, 10)}`;
+        
+        const lastLogged = this.recentLogs.get(eventKey);
+        if (lastLogged && (now - lastLogged < 5000)) {
+          console.log(`🛡️ Shoonya: Suppressed duplicate log for ${secret.type}`);
+          continue;
+        }
+
+        this.recentLogs.set(eventKey, now);
+        
+        const payload = {
+          type: this.mapSecretType(secret.type),
+          platform: platform,
+          risk_score: secret.riskScore || (secret.type === 'HIGH_ENTROPY_SECRET' ? 85 : 50),
+          action: 'REDACTED',
+          timestamp: new Date().toISOString(),
+          details: `Detected ${secret.type}`
+        };
+
+        // OFFLINE FIRST: Store the log securely in extension storage instead of backend API
+        chrome.storage.local.get({ events: [] }).then(result => {
+          let events = result.events;
+          events.unshift(payload); // Add to beginning
+          if (events.length > 500) events = events.slice(0, 500); // Cap at 500 to save space
+          chrome.storage.local.set({ events: events });
+        });
+        
+        if (this.recentLogs.size > 1000) {
+           const expiry = now - 10000;
+           for (const [key, time] of this.recentLogs.entries()) {
+             if (time < expiry) this.recentLogs.delete(key);
+           }
+        }
+      }
+    } catch (err) {
+      console.error('Error preparing dashboard logs:', err);
+    }
+  }
+
+  getPlatformFromUrl(url) {
+    if (url.includes('chatgpt.com') || url.includes('openai.com')) return 'ChatGPT';
+    if (url.includes('claude.ai')) return 'Claude';
+    if (url.includes('gemini.google.com')) return 'Gemini';
+    if (url.includes('github.com')) return 'GitHub';
+    return 'Other';
+  }
+
+  mapSecretType(type) {
+    // Pass the raw, exact detection type directly to the dashboard 
+    // instead of grouping them into generic categories.
+    return type || 'OTHER';
   }
 
   async getSettings(sendResponse) {
@@ -382,4 +449,4 @@ class CodeShieldBackground {
   cleanupOldData() { console.log('Cleaning up...'); }
 }
 
-new CodeShieldBackground();
+new ShoonyaBackground();
